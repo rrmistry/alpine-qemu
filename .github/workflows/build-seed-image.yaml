@@ -8,6 +8,8 @@ name: Build Cloud Init Seed Image
 
 on:
   push:
+    tags:
+      - "v*.*.*"
     branches:
       - main
     paths:
@@ -53,7 +55,7 @@ jobs:
       - name: Create GitHub Release
         id: create_release
         uses: softprops/action-gh-release@v2
-        if: ${{ env.ACT != 'true' }}
+        if: startsWith(github.ref, 'refs/tags/') && env.ACT != 'true'
         with:
           files: ${{ env.SEED_FILE_NAME }}
 
