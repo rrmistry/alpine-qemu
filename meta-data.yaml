@@ -1,0 +1,3 @@
+# meta-data.yaml
+instance-id: alpine-instance-01
+local-hostname: alpine-vm

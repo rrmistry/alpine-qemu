@@ -1,0 +1,22 @@
+version: "3"
+
+# Common variables
+vars: {}
+
+# Include any other Taskfiles
+includes: {}
+
+tasks:
+
+  github-actions:
+    dotenv:
+      - '{{.TASKFILE_DIR}}/.env'
+    vars:
+      WORKFLOW_FILE: '{{ .WORKFLOW_FILE | default ".github/workflows/build-seed-image.yaml" }}'
+      CONTAINER_PLATFORM: '{{.CONTAINER_PLATFORM | default .DOCKER_DEFAULT_PLATFORM }}'
+    cmds:
+      - cmd: >
+          act
+          --workflows="{{.WORKFLOW_FILE}}"
+          --use-new-action-cache
+          --container-architecture="{{.CONTAINER_PLATFORM}}"

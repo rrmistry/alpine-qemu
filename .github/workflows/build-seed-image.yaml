@@ -1,0 +1,62 @@
+name: Build Cloud Init Seed Image
+
+# Use with act:
+# > act --workflows .github/workflows/build-seed-image.yaml --no-cache-server
+#
+# Use with task:
+# > task github-actions
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+    - "user-data.yaml"
+    - "meta-data.yaml"
+  # schedule:
+  #   # - cron: "0 12 * * 1,3,5" # 12 PM UTC daily on Monday, Wednesday and Friday
+  #   - cron: "0 12 15 * *" # 12 PM UTC on the 15th day of every month
+  workflow_dispatch:
+    inputs: {}
+
+concurrency:
+  # Use a unique group per workflow & branch to restrict concurrent runs
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  SEED_FILE_NAME: cloud-init-seed.img
+
+jobs:
+  Build-Code-Server:
+    name: Build Code-Server
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      # Reference: https://github.com/actions/checkout/tree/v4/
+      - uses: actions/checkout@v4
+        name: Checkout code
+
+      - name: Install genisoimage
+        # GitHub Actions Runner Resource Limits:
+        # https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for--private-repositories
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y genisoimage
+
+      - name: Build Seed-Image
+        run: |
+          mkisofs -output "${{ env.SEED_FILE_NAME }}" -volid CIDATA -joliet -rock user-data.yaml meta-data.yaml
+
+      # Publish seed.img as build artifacts
+      # Reference: https://github.com/softprops/action-gh-release/tree/v2
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        if: ${{ env.ACT != 'true' }}
+        with:
+          files: ${{ env.SEED_FILE_NAME }}
+
+# --------------------------------------------
+
+# GitHub Actions Cheat Sheet: https://github.github.com/actions-cheat-sheet/actions-cheat-sheet.html
