@@ -1,0 +1,3 @@
+# Clean local iso image from Git repo
+*.img
+*.qcow2

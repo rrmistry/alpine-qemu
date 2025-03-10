@@ -1,0 +1,60 @@
+#cloud-config
+
+hostname: alpine-vm
+
+# Reference: https://github.com/cloudsigma/cloud-init/blob/master/doc/examples/cloud-config-user-groups.txt
+password: alpine
+ssh_pwauth: True
+chpasswd:
+  expire: False
+
+# Reference: https://github.com/cloudsigma/cloud-init/blob/master/doc/examples/cloud-config-write-files.txt
+write_files:
+  - path: /etc/network/interfaces
+    content: |
+      auto lo
+      iface lo inet loopback
+      auto eth0
+      iface eth0 inet dhcp
+
+  - path: /etc/apk/repositories
+    content: |
+      https://dl-cdn.alpinelinux.org/alpine/v3.21/main
+      https://dl-cdn.alpinelinux.org/alpine/v3.21/community
+
+# Reference: https://github.com/cloudsigma/cloud-init/blob/master/doc/examples/cloud-config-update-apt.txt
+package_update: True
+
+# Reference: https://github.com/cloudsigma/cloud-init/blob/master/doc/examples/cloud-config-update-packages.txt
+package_upgrade: True
+
+# Reference: https://github.com/cloudsigma/cloud-init/blob/master/doc/examples/cloud-config-install-packages.txt
+packages:
+  - bash
+  - curl
+  - openssh
+  - pwgen
+  - pastebinit
+  - podman
+  - [libpython2.7, 2.7.3-0ubuntu3.1]
+
+# Reference: https://github.com/cloudsigma/cloud-init/blob/master/doc/examples/cloud-config-run-cmds.txt
+runcmd:
+  - apk update
+  - apk add bash curl openssh
+  - apk add podman
+  - rc-update add networking boot
+  - rc-update add sshd default
+  - rc-service networking restart
+  - rc-service sshd restart
+  # - shutdown -h now
+
+# Reference: https://github.com/cloudsigma/cloud-init/blob/master/doc/examples/cloud-config-final-message.txt
+final_message: "The system is finally up, after $UPTIME seconds"
+
+# Reference: https://github.com/cloudsigma/cloud-init/blob/master/doc/examples/cloud-config-power-state.txt
+power_state:
+  delay: "now"
+  mode: poweroff
+  message: "Cloud-init finished successfully. Shutting down..."
+  timeout: 30

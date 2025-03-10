@@ -30,10 +30,10 @@ env:
   SEED_FILE_NAME: cloud-init-seed.img
 
 jobs:
-  Build-Code-Server:
-    name: Build Code-Server
+  Build-and-Release-Files:
+    name: Build And Release Files
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 5
     steps:
       # Reference: https://github.com/actions/checkout/tree/v4/
       - uses: actions/checkout@v4
@@ -48,7 +48,58 @@ jobs:
 
       - name: Build Seed-Image
         run: |
-          mkisofs -output "${{ env.SEED_FILE_NAME }}" -volid CIDATA -joliet -rock user-data.yaml meta-data.yaml
+          mkisofs -output "${{ env.SEED_FILE_NAME }}" -volid CIDATA -joliet -rock user-data meta-data
+
+      # Reference: https://github.com/actions/upload-artifact/tree/v4
+      - name: Upload seed image as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: seed-image
+          path: |
+            ${{ env.SEED_FILE_NAME }}
+            alpine-qemu-setup.sh
+          retention-days: 1
+
+  Test-Qemu-VM:
+    name: Test Qemu VM
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: Build-and-Release-Files
+    steps:
+      - name: Install QEMU
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-system qemu-img
+
+      # Reference: https://github.com/actions/download-artifact/tree/v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: seed-image
+          path: ./
+
+      - name: Run Setup Script
+        run: |
+          chmod u+x ./alpine-qemu-setup.sh
+          ./alpine-qemu-setup.sh
+
+      - name: Confirm that the file "./alpine-qemu.sh" is created
+        run: |
+          if [ -f "./alpine-qemu.sh" ]; then
+            echo "File exists"
+          else
+            echo "File does not exist"
+            exit 1
+          fi
+
+  Publish-Files:
+    name: Publish release files
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: Test-Qemu-VM
+    steps:
+
+      # Copy files "alpine-qemu-setup.sh" and "${{ env.SEED_FILE_NAME }}" from previous job
+      # <HELP ME HERE>
 
       # Publish seed.img as build artifacts
       # Reference: https://github.com/softprops/action-gh-release/tree/v2
@@ -57,8 +108,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') && env.ACT != 'true'
         with:
-          files: ${{ env.SEED_FILE_NAME }}
-          make_latest: true
+          files: |
+            ${{ env.SEED_FILE_NAME }}
+            alpine-qemu-setup.sh
 
 # --------------------------------------------
 
