@@ -1,0 +1,47 @@
+name: "Run QEMU VM build and tests"
+description: "Run standardized QEMU VM build, then test with a clean setup"
+
+inputs:
+  os:
+    description: The name of the OS to build and test
+    required: true
+    default: alpine
+    type: choice
+    options:
+      - alpine
+      # - debian # TODO
+
+runs:
+  using: "composite"
+
+  steps:
+    - name: Install dependencies
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y genisoimage qemu-system
+
+    - name: Build Seed-Image
+      shell: bash
+      working-directory: src/os/${{ inputs.os }}
+      run: |
+        mkisofs -output "${{ inputs.os }}-seed.img" -volid CIDATA -joliet -rock user-data meta-data
+
+    - name: Build and test
+      shell: bash
+      working-directory: src/os/${{ inputs.os }}
+      run: |
+        set -e
+        set -x
+        export SEED_FILE_NAME=${{ inputs.os }}-seed.img
+        . ./${{ inputs.os }}-qemu-setup.sh
+
+    # Reference: https://github.com/actions/upload-artifact/tree/v4
+    - name: Upload seed image as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.os }}-seed-image
+        path: |
+          src/os/${{ inputs.os }}/${{ inputs.os }}-seed.img
+          src/os/${{ inputs.os }}/${{ inputs.os }}-qemu-setup.sh
+        retention-days: 1

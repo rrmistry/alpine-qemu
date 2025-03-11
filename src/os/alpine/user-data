@@ -33,24 +33,27 @@ packages:
   - bash
   - curl
   - openssh
-  - pwgen
-  - pastebinit
   - podman
-  - [libpython2.7, 2.7.3-0ubuntu3.1]
 
 # Reference: https://github.com/cloudsigma/cloud-init/blob/master/doc/examples/cloud-config-run-cmds.txt
 runcmd:
-  - apk update
-  - apk add bash curl openssh
-  - apk add podman
+  # - apk update
+  # - apk add bash curl openssh
+  # - apk add podman
   - rc-update add networking boot
   - rc-update add sshd default
   - rc-service networking restart
   - rc-service sshd restart
+  - rc-service cgroups start
+
+  # Disable cloud-init on next boot
+  - touch /etc/cloud/cloud-init.disabled
+
+  # Explicitly shutdown the VM
   # - shutdown -h now
 
-# Reference: https://github.com/cloudsigma/cloud-init/blob/master/doc/examples/cloud-config-final-message.txt
-final_message: "The system is finally up, after $UPTIME seconds"
+# # Reference: https://github.com/cloudsigma/cloud-init/blob/master/doc/examples/cloud-config-final-message.txt
+# final_message: "The system is finally up, after $UPTIME seconds"
 
 # Reference: https://github.com/cloudsigma/cloud-init/blob/master/doc/examples/cloud-config-power-state.txt
 power_state:

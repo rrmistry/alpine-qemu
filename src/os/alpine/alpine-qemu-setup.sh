@@ -2,13 +2,14 @@
 set -e
 
 # Variables
-ALPINE_VERSION="3.21"
-ALPINE_VERSION_LONG="${ALPINE_VERSION}.2"
-RELEASE="r0"
-VM_NAME="alpine-vm"
-DISK_SIZE="20G"
-MEMORY="4096"
-CPUS="4"
+ALPINE_VERSION="${ALPINE_VERSION:-3.21}"
+ALPINE_VERSION_LONG="${ALPINE_VERSION_LONG:-${ALPINE_VERSION}.2}"
+RELEASE="${RELEASE:-r0}"
+SEED_FILE_NAME="${SEED_FILE_NAME:-seed.img}"
+VM_NAME="${VM_NAME:-alpine-vm}"
+DISK_SIZE="${DISK_SIZE:-20G}"
+MEMORY="${MEMORY:-4096}"
+CPUS="${CPUS:-4}"
 
 if [ ! -f "${VM_NAME}.qcow2" ]; then
   # Download Alpine cloud image (BIOS variant)
@@ -22,7 +23,6 @@ else
   echo "VM image '${VM_NAME}.qcow2' already exists. Skipping download."
 fi
 
-SEED_FILE_NAME="cloud-init-seed.img"
 if [ ! -f "$SEED_FILE_NAME" ]; then
   echo "File not found. Downloading $SEED_FILE_NAME..."
   curl -L "https://github.com/rrmistry/alpine-qemu/releases/latest/download/cloud-init-seed.img" --output ${SEED_FILE_NAME}
