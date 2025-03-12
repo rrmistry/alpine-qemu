@@ -21,19 +21,23 @@ tasks:
           --use-new-action-cache
           --container-architecture="{{.CONTAINER_PLATFORM}}"
 
-  create-seed-img:
+  alpine-qemu-setup:
+    dir: '{{ .TASKFILE_DIR }}/src/os/alpine'
     env:
-      SEED_FILE_NAME: '{{ .SEED_FILE_NAME | default "cloud-init-seed.img" }}'
+      SEED_FILE_NAME: '{{ .SEED_FILE_NAME | default "alpine-seed.img" }}'
+      VM_NAME: '{{.VM_NAME | default "alpine-vm" }}'
     cmds:
-      - cmd: rm ${SEED_FILE_NAME}
+      - defer: |
+          rm "${SEED_FILE_NAME}"
+          rm "${VM_NAME}.qcow2"
+          rm "${VM_NAME}.sh"
+      - cmd: |
+          rm "${SEED_FILE_NAME}"
+          rm "${VM_NAME}.qcow2"
+          rm "${VM_NAME}.sh"
         ignore_error: true
       - cmd: mkisofs -output "${SEED_FILE_NAME}" -volid CIDATA -joliet -rock user-data meta-data
-      # - cmd: mkisofs -output "cloud-init-seed.img" -volid CIDATA -joliet -rock user-data meta-data
-      # - cmd: mkisofs -output "seed.img" -volid CIDATA -joliet -rock user-data meta-data
-
-  run:
-    cmds:
-      - task: create-seed-img
-      - cmd: rm alpine-vm.qcow2
-        ignore_error: true
-      - cmd: ./alpine-qemu-setup.sh
+      - cmd: |
+          set -e
+          set -x
+          . ./alpine-qemu-setup.sh

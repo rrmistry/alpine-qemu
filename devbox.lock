@@ -49,6 +49,9 @@
         }
       }
     },
+    "github:NixOS/nixpkgs/nixpkgs-unstable": {
+      "resolved": "github:NixOS/nixpkgs/b62d2a95c72fb068aecd374a7262b37ed92df82b?lastModified=1741708242&narHash=sha256-cNRqdQD4sZpN7JLqxVOze4%2BWsWTmv2DGH0wNCOVwrWc%3D"
+    },
     "go-task@latest": {
       "last_modified": "2025-02-07T11:26:36Z",
       "resolved": "github:NixOS/nixpkgs/d98abf5cf5914e5e4e9d57205e3af55ca90ffc1d#go-task",
@@ -94,6 +97,82 @@
             }
           ],
           "store_path": "/nix/store/jn35gb9isnqzr9mfwhmig40c6iflmadz-go-task-3.41.0"
+        }
+      }
+    },
+    "qemu@latest": {
+      "last_modified": "2025-02-27T15:48:43Z",
+      "resolved": "github:NixOS/nixpkgs/6c5c5f5100281f8f4ff23f13edd17d645178c87c#qemu",
+      "source": "devbox-search",
+      "version": "9.2.0",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/xi038k0wpk5pqpb9wpfsggbwg98fjp19-qemu-9.2.0",
+              "default": true
+            },
+            {
+              "name": "doc",
+              "path": "/nix/store/p6bd857b9b2b0mwidf3c3simzrn4wrd1-qemu-9.2.0-doc"
+            }
+          ],
+          "store_path": "/nix/store/xi038k0wpk5pqpb9wpfsggbwg98fjp19-qemu-9.2.0"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/5lvp1j5zqixwgpap0ydxxn20vpf7zwhv-qemu-9.2.0",
+              "default": true
+            },
+            {
+              "name": "doc",
+              "path": "/nix/store/25p292ayhw3nyw13fcsfvjmd59a0dl28-qemu-9.2.0-doc"
+            },
+            {
+              "name": "ga",
+              "path": "/nix/store/p830kvdk49biskbvxshafdj89gy4yh2i-qemu-9.2.0-ga"
+            }
+          ],
+          "store_path": "/nix/store/5lvp1j5zqixwgpap0ydxxn20vpf7zwhv-qemu-9.2.0"
+        },
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/5w125i5fxhb9hjngr69ijhjqy6zdrd32-qemu-9.2.0",
+              "default": true
+            },
+            {
+              "name": "doc",
+              "path": "/nix/store/7h56bz951w1gsrv1pd8r92zlaswcl5dw-qemu-9.2.0-doc"
+            }
+          ],
+          "store_path": "/nix/store/5w125i5fxhb9hjngr69ijhjqy6zdrd32-qemu-9.2.0"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/wki38rsd293n514k0jaaq7kng3kxyqbq-qemu-9.2.0",
+              "default": true
+            },
+            {
+              "name": "debug",
+              "path": "/nix/store/6crpliz1k135r4si50dnd0xv6m4kq8sr-qemu-9.2.0-debug"
+            },
+            {
+              "name": "doc",
+              "path": "/nix/store/8kpjfw8gw6nl90w80na09ryx38hl5d21-qemu-9.2.0-doc"
+            },
+            {
+              "name": "ga",
+              "path": "/nix/store/474ldxbd21m8z42i4y7p8q8z36d92ma5-qemu-9.2.0-ga"
+            }
+          ],
+          "store_path": "/nix/store/wki38rsd293n514k0jaaq7kng3kxyqbq-qemu-9.2.0"
         }
       }
     }

@@ -30,15 +30,17 @@ runs:
     - name: Build and test
       shell: bash
       working-directory: src/os/${{ inputs.os }}
+      env:
+        SEED_FILE_NAME: ${{ inputs.os }}-seed.img
       run: |
         set -e
         set -x
-        export SEED_FILE_NAME=${{ inputs.os }}-seed.img
         . ./${{ inputs.os }}-qemu-setup.sh
 
     # Reference: https://github.com/actions/upload-artifact/tree/v4
     - name: Upload seed image as artifact
       uses: actions/upload-artifact@v4
+      if: env.ACT != 'true'
       with:
         name: ${{ inputs.os }}-seed-image
         path: |

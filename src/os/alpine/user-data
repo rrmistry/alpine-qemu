@@ -49,6 +49,9 @@ runcmd:
   # Disable cloud-init on next boot
   - touch /etc/cloud/cloud-init.disabled
 
+  # To confirm that cloud-init finished successfully
+  - cat /var/lib/cloud/instance/boot-finished
+
   # Explicitly shutdown the VM
   # - shutdown -h now
 

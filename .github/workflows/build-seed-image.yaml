@@ -23,9 +23,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
-env:
-  SEED_FILE_NAME: cloud-init-seed.img
-
 permissions:
   contents: write
 
@@ -54,11 +51,11 @@ jobs:
       - name: Create GitHub Release
         id: create_release
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') && env.ACT != 'true'
         with:
           files: |
-            src/os/${{ matrix.os }}/${{ env.SEED_FILE_NAME }}
-            src/os/${{ matrix.os }}/alpine-qemu-setup.sh
+            src/os/${{ matrix.os }}/${{ matrix.os }}-seed.img
+            src/os/${{ matrix.os }}/${{ matrix.os }}-qemu-setup.sh
 
 # --------------------------------------------
 
