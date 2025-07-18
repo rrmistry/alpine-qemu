@@ -2,7 +2,7 @@
 set -e
 
 # Tailscale Setup Script for Alpine Linux VMs
-# Usage: curl -sSL https://raw.githubusercontent.com/[user]/[repo]/main/src/os/alpine/tailscale-setup.sh | sh
+# Usage: curl -sSL https://github.com/rrmistry/alpine-qemu/raw/main/src/os/alpine/tailscale-setup.sh | sh
 # Or with auth key: TAILSCALE_AUTH_KEY=tskey-xxx curl -sSL ... | sh
 
 echo "🔧 Tailscale Setup for Alpine Linux VM"
@@ -113,3 +113,4 @@ echo ""
 echo "🎉 Tailscale setup completed!"
 echo "   - Service status: $(rc-service tailscale status 2>/dev/null || echo 'installed')"
 echo "   - Connection status: $(tailscale status --self 2>/dev/null | head -1 || echo 'not connected')"
+
