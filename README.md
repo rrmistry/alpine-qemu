@@ -8,7 +8,9 @@ This repo provides a clean, production-ready script that lets you set up a persi
 ```bash
 # One-command setup from anywhere:
 curl -fsSL https://github.com/rrmistry/alpine-qemu/raw/main/src/os/alpine/alpine-qemu-setup.sh | bash
+```
 
+```bash
 # Or download and run locally:
 wget https://github.com/rrmistry/alpine-qemu/raw/main/src/os/alpine/alpine-qemu-setup.sh
 chmod +x alpine-qemu-setup.sh
