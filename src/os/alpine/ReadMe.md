@@ -49,6 +49,14 @@ VM_NAME=my-vm DISK_SIZE=40G MEMORY=4096 CPUS=4 ./alpine-qemu-setup.sh
 - `CPUS`: CPU cores (default: 2)
 - `ARCH`: Target architecture (default: host)
 
+## Corporate Network Support
+
+The script includes automatic SSL certificate handling for corporate environments:
+
+- **Secure by default**: Always tries standard SSL verification first
+- **Corporate fallback**: Automatically uses `--ssl-no-revoke` (curl) or `--no-check-certificate` (wget) if needed
+- **Clear feedback**: Shows when corporate network mode is detected
+
 ## Files Created
 
 After first run:

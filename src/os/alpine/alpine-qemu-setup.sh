@@ -1,6 +1,53 @@
 #!/bin/bash
 set -e
 
+# Helper function for secure downloading with corporate certificate fallback
+secure_download() {
+    local url="$1"
+    local output="$2"
+    local success=false
+    
+    if command -v curl >/dev/null 2>&1; then
+        # Try curl with standard SSL verification first
+        echo "Attempting secure download with curl..."
+        if curl -fsSL "$url" --output "$output" 2>/dev/null; then
+            success=true
+        else
+            echo "Standard SSL verification failed, trying with --ssl-no-revoke for corporate networks..."
+            if curl -fsSL --ssl-no-revoke "$url" --output "$output" 2>/dev/null; then
+                success=true
+                echo "Downloaded successfully with --ssl-no-revoke (corporate network detected)"
+            fi
+        fi
+    elif command -v wget >/dev/null 2>&1; then
+        # Try wget with standard SSL verification first
+        echo "Attempting secure download with wget..."
+        if wget --quiet "$url" -O "$output" 2>/dev/null; then
+            success=true
+        else
+            echo "Standard SSL verification failed, trying with --no-check-certificate for corporate networks..."
+            if wget --quiet --no-check-certificate "$url" -O "$output" 2>/dev/null; then
+                success=true
+                echo "Downloaded successfully with --no-check-certificate (corporate network detected)"
+            fi
+        fi
+    else
+        echo "Error: curl or wget is required but not installed."
+        exit 1
+    fi
+    
+    if [ "$success" = false ]; then
+        echo "Error: Failed to download $url"
+        echo "This may be due to:"
+        echo "  - Network connectivity issues"
+        echo "  - SSL certificate problems"
+        echo "  - Corporate firewall restrictions"
+        echo ""
+        echo "Try manually downloading the file or contact your IT administrator."
+        exit 1
+    fi
+}
+
 # Variables
 ALPINE_VERSION="${ALPINE_VERSION:-3.21}"
 ALPINE_VERSION_LONG="${ALPINE_VERSION_LONG:-${ALPINE_VERSION}.2}"
@@ -18,18 +65,15 @@ if [ ! -f "${VM_NAME}.qcow2" ]; then
   # Download Alpine cloud image (BIOS variant)
   ALPINE_IMAGE_URL="https://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VERSION}/releases/cloud/generic_alpine-${ALPINE_VERSION_LONG}-${ARCH}-bios-cloudinit-${RELEASE}.qcow2"
   echo "Downloading Alpine cloud image ${ALPINE_IMAGE_URL}..."
-  if command -v curl >/dev/null 2>&1; then
-    curl -L "${ALPINE_IMAGE_URL}" --output "${VM_NAME}.qcow2"
-  elif command -v wget >/dev/null 2>&1; then
-    wget "${ALPINE_IMAGE_URL}" -O "${VM_NAME}.qcow2"
+  secure_download "${ALPINE_IMAGE_URL}" "${VM_NAME}.qcow2"
+  
+  # Resize the disk image
+  if command -v qemu-img >/dev/null 2>&1; then
+    qemu-img resize "${VM_NAME}.qcow2" ${DISK_SIZE}
+    echo "VM disk resized to ${DISK_SIZE}"
   else
-    echo "Error: curl or wget is required but not installed."
-    exit 1
+    echo "Warning: qemu-img not found. Disk not resized."
   fi
-  # Example:
-  # https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/cloud/generic_alpine-3.21.2-x86_64-bios-cloudinit-r0.qcow2
-
-  qemu-img resize "${VM_NAME}.qcow2" ${DISK_SIZE}
 else
   echo "VM image '${VM_NAME}.qcow2' already exists. Skipping download."
 fi
@@ -37,14 +81,8 @@ fi
 # Download pre-built seed image from GitHub releases
 if [ ! -f "$SEED_FILE_NAME" ]; then
   echo "Downloading pre-built seed image from GitHub releases..."
-  if command -v curl >/dev/null 2>&1; then
-    curl -L "https://github.com/rrmistry/alpine-qemu/releases/latest/download/${SEED_FILE_NAME}" --output ${SEED_FILE_NAME}
-  elif command -v wget >/dev/null 2>&1; then
-    wget "https://github.com/rrmistry/alpine-qemu/releases/latest/download/${SEED_FILE_NAME}" -O ${SEED_FILE_NAME}
-  else
-    echo "Error: curl or wget is required but not installed."
-    exit 1
-  fi
+  SEED_IMAGE_URL="https://github.com/rrmistry/alpine-qemu/releases/latest/download/${SEED_FILE_NAME}"
+  secure_download "${SEED_IMAGE_URL}" "${SEED_FILE_NAME}"
 else
   echo "${SEED_FILE_NAME} already exists. Skipping download."
 fi
