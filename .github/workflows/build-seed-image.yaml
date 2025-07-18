@@ -1,4 +1,4 @@
-name: Build Cloud Init Seed Image
+name: Build and Test Alpine QEMU VM
 
 # Use with act:
 # > act --workflows .github/workflows/build-seed-image.yaml --no-cache-server
@@ -27,8 +27,8 @@ permissions:
   contents: write
 
 jobs:
-  Build-and-Release-Files:
-    name: Build And Release Files
+  Build-and-Test-Alpine-VM:
+    name: Build and Test Alpine VM
     runs-on: ubuntu-latest
     timeout-minutes: 5
     strategy:
@@ -46,7 +46,7 @@ jobs:
         with:
           os: ${{ matrix.os }}
 
-      # Publish seed.img as build artifacts
+      # Publish seed image as build artifacts
       # Reference: https://github.com/softprops/action-gh-release/tree/v2
       - name: Create GitHub Release
         id: create_release

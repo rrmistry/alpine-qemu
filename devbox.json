@@ -3,7 +3,9 @@
   "packages": [
     "act@latest",
     "go-task@latest",
-    "qemu@latest"
+    "qemu@latest",
+    "tmux@latest",
+    "tmuxinator@latest"
   ],
   "shell": {
     "init_hook": [
@@ -12,6 +14,12 @@
     "scripts": {
       "test": [
         "echo \"Error: no test specified\" && exit 1"
+      ],
+      "tmux": [
+        "tmuxinator start alpine-qemu -p $PWD/.tmuxinator.yml"
+      ],
+      "tmux:stop": [
+        "tmuxinator stop alpine-qemu -p $PWD/.tmuxinator.yml"
       ]
     }
   }

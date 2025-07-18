@@ -52,15 +52,15 @@ runcmd:
   # To confirm that cloud-init finished successfully
   - cat /var/lib/cloud/instance/boot-finished
 
-  # Explicitly shutdown the VM
-  # - shutdown -h now
+  # VM will remain running for interactive use
+  # Use 'shutdown -h now' to shutdown manually if needed
 
 # # Reference: https://github.com/cloudsigma/cloud-init/blob/master/doc/examples/cloud-config-final-message.txt
 # final_message: "The system is finally up, after $UPTIME seconds"
 
 # Reference: https://github.com/cloudsigma/cloud-init/blob/master/doc/examples/cloud-config-power-state.txt
-power_state:
-  delay: "now"
-  mode: poweroff
-  message: "Cloud-init finished successfully. Shutting down..."
-  timeout: 30
+# power_state:
+#   delay: "now"
+#   mode: poweroff
+#   message: "Cloud-init finished successfully. Shutting down..."
+#   timeout: 30

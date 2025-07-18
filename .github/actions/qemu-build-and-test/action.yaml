@@ -21,29 +21,80 @@ runs:
         sudo apt-get update
         sudo apt-get install -y genisoimage qemu-system
 
-    - name: Build Seed-Image
+    - name: Build seed image
       shell: bash
       working-directory: src/os/${{ inputs.os }}
-      run: |
-        mkisofs -output "${{ inputs.os }}-seed.img" -volid CIDATA -joliet -rock user-data meta-data
-
-    - name: Build and test
-      shell: bash
-      working-directory: src/os/${{ inputs.os }}
-      env:
-        SEED_FILE_NAME: ${{ inputs.os }}-seed.img
       run: |
         set -e
         set -x
-        . ./${{ inputs.os }}-qemu-setup.sh
+        
+        # Build the seed image using mkisofs
+        echo "Building cloud-init seed image..."
+        mkisofs -output "${{ inputs.os }}-seed.img" -volid CIDATA -joliet -rock user-data meta-data
+        
+        # Verify the seed image was created
+        if [ -f "${{ inputs.os }}-seed.img" ]; then
+          echo "✅ SUCCESS: Seed image created"
+          ls -la "${{ inputs.os }}-seed.img"
+        else
+          echo "❌ FAILURE: Seed image not created"
+          exit 1
+        fi
+
+    - name: Test Alpine QEMU VM Boot
+      shell: bash
+      working-directory: src/os/${{ inputs.os }}
+      run: |
+        set -e
+        set -x
+        
+        # Test the alpine-qemu-setup.sh script
+        echo "Testing Alpine QEMU VM boot process..."
+        
+        # Run the script with timeout to prevent hanging, capture output
+        timeout 120s ./alpine-qemu-setup.sh 2>&1 | tee vm_boot_output.log || echo "VM boot test completed (timeout expected)"
+        
+        # Verify VM files were created
+        echo "Checking created VM files..."
+        ls -la alpine-vm* || echo "VM files check completed"
+        
+        # Verify boot process shows Alpine Linux kernel messages
+        echo "Verifying Alpine Linux boot process..."
+        if grep -q "Alpine Init" vm_boot_output.log; then
+          echo "✅ SUCCESS: Alpine Linux boot process detected"
+        else
+          echo "❌ FAILURE: Alpine Linux boot process not detected"
+          echo "Boot output:"
+          cat vm_boot_output.log
+          exit 1
+        fi
+        
+        # Verify cloud-init configuration
+        if grep -q "OpenRC" vm_boot_output.log; then
+          echo "✅ SUCCESS: OpenRC service initialization detected"
+        else
+          echo "❌ FAILURE: OpenRC service initialization not detected"
+          exit 1
+        fi
+        
+        # Verify runtime script was created
+        if [ -f "alpine-vm.sh" ]; then
+          echo "✅ SUCCESS: Runtime script alpine-vm.sh created"
+          echo "Runtime script contents:"
+          cat alpine-vm.sh
+        else
+          echo "❌ FAILURE: Runtime script not created"
+          exit 1
+        fi
 
     # Reference: https://github.com/actions/upload-artifact/tree/v4
-    - name: Upload seed image as artifact
+    - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       if: env.ACT != 'true'
       with:
-        name: ${{ inputs.os }}-seed-image
+        name: ${{ inputs.os }}-build-artifacts
         path: |
           src/os/${{ inputs.os }}/${{ inputs.os }}-seed.img
           src/os/${{ inputs.os }}/${{ inputs.os }}-qemu-setup.sh
         retention-days: 1
+

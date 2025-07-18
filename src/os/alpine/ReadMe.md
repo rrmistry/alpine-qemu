@@ -1,38 +1,57 @@
-# Alpine Linux OS files for QEMU setup
+# Alpine Linux QEMU VM Setup
 
-This directory contains the necessary files and scripts to set up an Alpine Linux virtual machine using QEMU.
+This directory contains the clean, production-ready Alpine Linux QEMU VM setup.
 
 ## Files
 
-- `alpine-qemu-setup.sh`: Script to download and set up the Alpine Linux VM with QEMU.
-- `meta-data`: Cloud-init metadata file for the VM.
-- `user-data`: Cloud-init user data file for the VM configuration.
+- **`alpine-qemu-setup.sh`**: Main script - single source of truth for VM setup
+- **`meta-data`**: Cloud-init metadata (instance ID, hostname) 
+- **`user-data`**: Cloud-init configuration (packages, SSH, services)
 
 ## Usage
 
-1. Run the setup script to download and configure the Alpine Linux VM:
-    ```sh
-    ./alpine-qemu-setup.sh
-    ```
-
-2. The script will download the necessary Alpine Linux image and create a QEMU virtual machine.
-
-3. The VM will be configured using the cloud-init files (`meta-data` and `user-data`).
-
-## Cloud-init Configuration
-
-- `meta-data`: Contains instance metadata such as instance ID and hostname.
-- `user-data`: Contains user data for cloud-init to configure the VM, including setting the hostname, password, SSH access, and installing packages.
-
-## Notes
-
-- The VM image and seed image will be downloaded if they do not already exist.
-- The script determines the host CPU architecture and selects the appropriate QEMU binary.
-- The VM will be started with the specified memory, CPU, and disk size configurations.
-
-## Example Commands
-
-To create and run the VM:
-```sh
-
+### Local Setup
+```bash
+cd src/os/alpine
+./alpine-qemu-setup.sh
 ```
+
+### Remote Setup (Recommended)
+```bash
+curl -fsSL https://raw.githubusercontent.com/rrmistry/alpine-qemu/main/src/os/alpine/alpine-qemu-setup.sh | bash
+```
+
+## What It Does
+
+1. **Downloads Alpine BIOS cloud image** (180MB) with full console output
+2. **Downloads pre-built cloud-init seed image** from GitHub releases
+3. **Boots VM with cloud-init** for initial setup
+4. **Generates runtime script** (`alpine-vm.sh`) for subsequent boots
+5. **Disables cloud-init** after first run for faster boot
+
+## VM Features
+
+- **Full console output**: See complete boot process and kernel messages
+- **SSH access**: Port 8022 (password: alpine)
+- **Pre-installed packages**: bash, curl, openssh, podman
+- **Persistent storage**: VM state survives reboots
+- **Cross-architecture**: Supports x86_64, aarch64, i686, armv7l
+
+## Environment Variables
+
+```bash
+VM_NAME=my-vm DISK_SIZE=40G MEMORY=4096 CPUS=4 ./alpine-qemu-setup.sh
+```
+
+- `VM_NAME`: Instance name (default: alpine-vm)
+- `DISK_SIZE`: Virtual disk size (default: 20G)
+- `MEMORY`: RAM in MB (default: 2048)
+- `CPUS`: CPU cores (default: 2)
+- `ARCH`: Target architecture (default: host)
+
+## Files Created
+
+After first run:
+- `alpine-vm.qcow2`: VM disk image
+- `alpine-seed.img`: Cloud-init seed image (downloaded from GitHub releases)
+- `alpine-vm.sh`: Runtime script for subsequent boots
