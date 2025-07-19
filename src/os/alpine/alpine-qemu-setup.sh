@@ -158,15 +158,23 @@ echo ""
 
 # Build QEMU command with UEFI support
 QEMU_CMD="\${QEMU_BIN}"
-QEMU_CMD="\${QEMU_CMD} -machine type=virt"
 
-# Architecture-specific CPU settings
+# Architecture-specific machine type and CPU settings
 case "\${ARCH}" in
   aarch64)
+    QEMU_CMD="\${QEMU_CMD} -machine virt"
     QEMU_CMD="\${QEMU_CMD} -cpu cortex-a57"
     ;;
   x86_64)
-    QEMU_CMD="\${QEMU_CMD} -cpu qemu64"
+    QEMU_CMD="\${QEMU_CMD} -machine q35"
+    QEMU_CMD="\${QEMU_CMD} -cpu max"
+    ;;
+  i686)
+    QEMU_CMD="\${QEMU_CMD} -machine q35"
+    QEMU_CMD="\${QEMU_CMD} -cpu qemu32"
+    ;;
+  *)
+    QEMU_CMD="\${QEMU_CMD} -machine virt"
     ;;
 esac
 
@@ -225,15 +233,23 @@ echo "💡 To start with cloud-init (first boot only):"
 
 # Build and execute UEFI-compatible QEMU command for initial setup
 QEMU_CMD="${QEMU_BIN}"
-QEMU_CMD="${QEMU_CMD} -machine type=virt"
 
-# Architecture-specific CPU settings
+# Architecture-specific machine type and CPU settings
 case "${ARCH}" in
   aarch64)
+    QEMU_CMD="${QEMU_CMD} -machine virt"
     QEMU_CMD="${QEMU_CMD} -cpu cortex-a57"
     ;;
   x86_64)
-    QEMU_CMD="${QEMU_CMD} -cpu qemu64"
+    QEMU_CMD="${QEMU_CMD} -machine q35"
+    QEMU_CMD="${QEMU_CMD} -cpu max"
+    ;;
+  i686)
+    QEMU_CMD="${QEMU_CMD} -machine q35"
+    QEMU_CMD="${QEMU_CMD} -cpu qemu32"
+    ;;
+  *)
+    QEMU_CMD="${QEMU_CMD} -machine virt"
     ;;
 esac
 
