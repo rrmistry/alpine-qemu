@@ -61,25 +61,23 @@ CPUS="${CPUS:-2}"
 SYSTEM_ARCH=$(uname -m)
 ARCH="${ARCH:-$SYSTEM_ARCH}"
 
-if [ ! -f "${VM_NAME}.qcow2" ]; then
-  # Download Alpine cloud image - use non-UEFI for x86_64, UEFI for others
-  if [ "$ARCH" = "x86_64" ]; then
-    ALPINE_IMAGE_URL="https://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VERSION}/releases/cloud/generic_alpine-${ALPINE_VERSION_LONG}-${ARCH}-cloudinit-${RELEASE}.qcow2"
-  else
-    ALPINE_IMAGE_URL="https://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VERSION}/releases/cloud/generic_alpine-${ALPINE_VERSION_LONG}-${ARCH}-uefi-cloudinit-${RELEASE}.qcow2"
-  fi
-  echo "Downloading Alpine cloud image ${ALPINE_IMAGE_URL}..."
-  secure_download "${ALPINE_IMAGE_URL}" "${VM_NAME}.qcow2"
-  
-  # Resize the disk image
-  if command -v qemu-img >/dev/null 2>&1; then
-    qemu-img resize "${VM_NAME}.qcow2" ${DISK_SIZE}
-    echo "VM disk resized to ${DISK_SIZE}"
-  else
-    echo "Warning: qemu-img not found. Disk not resized."
-  fi
+# Always recreate VM image for clean state
+if [ -f "${VM_NAME}.qcow2" ]; then
+  echo "Removing existing VM image for clean setup..."
+  rm -f "${VM_NAME}.qcow2"
+fi
+
+# Download Alpine cloud image (UEFI variant for all architectures)
+ALPINE_IMAGE_URL="https://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VERSION}/releases/cloud/generic_alpine-${ALPINE_VERSION_LONG}-${ARCH}-uefi-cloudinit-${RELEASE}.qcow2"
+echo "Downloading Alpine cloud image ${ALPINE_IMAGE_URL}..."
+secure_download "${ALPINE_IMAGE_URL}" "${VM_NAME}.qcow2"
+
+# Resize the disk image
+if command -v qemu-img >/dev/null 2>&1; then
+  qemu-img resize "${VM_NAME}.qcow2" ${DISK_SIZE}
+  echo "VM disk resized to ${DISK_SIZE}"
 else
-  echo "VM image '${VM_NAME}.qcow2' already exists. Skipping download."
+  echo "Warning: qemu-img not found. Disk not resized."
 fi
 
 # Download pre-built seed image from GitHub releases
@@ -96,8 +94,8 @@ if [ ! -f "$QEMU_EFI_FILE_NAME" ]; then
   echo "Downloading UEFI firmware for ${ARCH}..."
   case "$ARCH" in
     x86_64)
-      # For x86_64, we skip UEFI and use standard BIOS boot
-      UEFI_URL=""
+      # For x86_64, use OVMF UEFI firmware
+      UEFI_URL="https://releases.linaro.org/components/kernel/uefi-linaro/latest/release/qemu64/QEMU_EFI.fd"
       ;;
     aarch64)
       UEFI_URL="https://releases.linaro.org/components/kernel/uefi-linaro/latest/release/qemu64/QEMU_EFI.fd"
@@ -157,7 +155,7 @@ MEMORY=\${MEMORY:-${MEMORY}}
 
 echo "🚀 Starting Alpine Linux VM (\${ARCH}, UEFI)"
 echo "   Memory: \${MEMORY}MB, CPUs: \${CPUS}"
-echo "   SSH: ssh -p 8022 alpine@localhost (password: alpine)"
+echo "   SSH: ssh -p \${SSH_PORT} alpine@localhost (password: alpine)"
 echo "   Stop: Ctrl+A, X or 'sudo poweroff' inside VM"
 echo ""
 
@@ -171,13 +169,9 @@ case "\${ARCH}" in
     QEMU_CMD="\${QEMU_CMD} -cpu cortex-a57"
     ;;
   x86_64)
-    QEMU_CMD="\${QEMU_CMD} -machine pc"
-    # Use simpler CPU for cross-architecture emulation
-    if [ "\${ARCH}" != "\${RUNTIME_SYSTEM_ARCH}" ]; then
-      QEMU_CMD="\${QEMU_CMD} -cpu qemu64"
-    else
-      QEMU_CMD="\${QEMU_CMD} -cpu max"
-    fi
+    QEMU_CMD="\${QEMU_CMD} -machine q35"
+    QEMU_CMD="\${QEMU_CMD} -cpu max"
+    QEMU_CMD="\${QEMU_CMD} -global isa-debugcon.iobase=0x402"
     ;;
   i686)
     QEMU_CMD="\${QEMU_CMD} -machine q35"
@@ -191,24 +185,26 @@ esac
 # Common VM settings
 QEMU_CMD="\${QEMU_CMD} -smp \${CPUS}"
 QEMU_CMD="\${QEMU_CMD} -m \${MEMORY}"
-
-# Get system architecture at runtime
-RUNTIME_SYSTEM_ARCH=\$(uname -m)
-# Disable KVM acceleration if cross-architecture
-if [ "\${ARCH}" != "\${RUNTIME_SYSTEM_ARCH}" ]; then
-  QEMU_CMD="\${QEMU_CMD} -accel tcg"
-fi
-
 QEMU_CMD="\${QEMU_CMD} -drive file=\${VM_NAME}.qcow2,format=qcow2,if=virtio"
-QEMU_CMD="\${QEMU_CMD} -netdev user,id=net0,hostfwd=tcp::8022-:22"
+QEMU_CMD="\${QEMU_CMD} -netdev user,id=net0,hostfwd=tcp::\${SSH_PORT}-:22"
 QEMU_CMD="\${QEMU_CMD} -device virtio-net-pci,netdev=net0"
 
-# UEFI firmware and console
+# UEFI firmware and console - architecture specific console setup
 if [ -f "\${QEMU_EFI_FILE_NAME}" ]; then
   QEMU_CMD="\${QEMU_CMD} -bios \${QEMU_EFI_FILE_NAME}"
 fi
 QEMU_CMD="\${QEMU_CMD} -nographic"
-QEMU_CMD="\${QEMU_CMD} -serial mon:stdio"
+case "\${ARCH}" in
+  x86_64)
+    # For x86_64 UEFI, use stdio for serial console and disable monitor
+    QEMU_CMD="\${QEMU_CMD} -serial stdio"
+    QEMU_CMD="\${QEMU_CMD} -monitor none"
+    ;;
+  *)
+    # For other architectures, use the monitor serial
+    QEMU_CMD="\${QEMU_CMD} -serial mon:stdio"
+    ;;
+esac
 QEMU_CMD="\${QEMU_CMD} -display none"
 
 # Add any additional arguments
@@ -229,7 +225,7 @@ echo "🎉 Alpine Linux VM setup complete!"
 echo ""
 echo "📋 Next steps:"
 echo "   1. Start VM: ./${ALPINE_QEMU_RUNTIME_SCRIPT}"
-echo "   2. SSH access: ssh -p 8022 alpine@localhost (password: alpine)"
+echo "   2. SSH access: ssh -p ${SSH_PORT} alpine@localhost (password: alpine)"
 echo "   3. Stop VM: Ctrl+A, X or 'sudo poweroff' inside VM"
 echo ""
 echo "🔧 Configuration:"
@@ -259,13 +255,9 @@ case "${ARCH}" in
     QEMU_CMD="${QEMU_CMD} -cpu cortex-a57"
     ;;
   x86_64)
-    QEMU_CMD="${QEMU_CMD} -machine pc"
-    # Use simpler CPU for cross-architecture emulation
-    if [ "${ARCH}" != "${SYSTEM_ARCH}" ]; then
-      QEMU_CMD="${QEMU_CMD} -cpu qemu64"
-    else
-      QEMU_CMD="${QEMU_CMD} -cpu max"
-    fi
+    QEMU_CMD="${QEMU_CMD} -machine q35"
+    QEMU_CMD="${QEMU_CMD} -cpu max"
+    QEMU_CMD="${QEMU_CMD} -global isa-debugcon.iobase=0x402"
     ;;
   i686)
     QEMU_CMD="${QEMU_CMD} -machine q35"
@@ -279,23 +271,27 @@ esac
 # Common VM settings
 QEMU_CMD="${QEMU_CMD} -smp ${CPUS}"
 QEMU_CMD="${QEMU_CMD} -m ${MEMORY}"
-
-# Disable KVM acceleration if cross-architecture
-if [ "${ARCH}" != "${SYSTEM_ARCH}" ]; then
-  QEMU_CMD="${QEMU_CMD} -accel tcg"
-fi
-
 QEMU_CMD="${QEMU_CMD} -drive file=${VM_NAME}.qcow2,format=qcow2,if=virtio"
 QEMU_CMD="${QEMU_CMD} -drive file=${SEED_FILE_NAME},format=raw,if=virtio,readonly=on"
-QEMU_CMD="${QEMU_CMD} -netdev user,id=net0,hostfwd=tcp::8022-:22"
+QEMU_CMD="${QEMU_CMD} -netdev user,id=net0"
 QEMU_CMD="${QEMU_CMD} -device virtio-net-pci,netdev=net0"
 
-# UEFI firmware and console
+# UEFI firmware and console - architecture specific console setup
 if [ -f "${QEMU_EFI_FILE_NAME}" ]; then
   QEMU_CMD="${QEMU_CMD} -bios ${QEMU_EFI_FILE_NAME}"
 fi
 QEMU_CMD="${QEMU_CMD} -nographic"
-QEMU_CMD="${QEMU_CMD} -serial mon:stdio"
+case "${ARCH}" in
+  x86_64)
+    # For x86_64 UEFI, use stdio for serial console and disable monitor
+    QEMU_CMD="${QEMU_CMD} -serial stdio"
+    QEMU_CMD="${QEMU_CMD} -monitor none"
+    ;;
+  *)
+    # For other architectures, use the monitor serial
+    QEMU_CMD="${QEMU_CMD} -serial mon:stdio"
+    ;;
+esac
 QEMU_CMD="${QEMU_CMD} -display none"
 
 # Add any additional arguments

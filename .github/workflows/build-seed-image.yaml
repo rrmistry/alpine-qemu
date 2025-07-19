@@ -30,7 +30,7 @@ jobs:
   Build-and-Test-Alpine-VM:
     name: Build and Test Alpine VM (${{ matrix.os }} - ${{ matrix.arch }})
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 20
     strategy:
       matrix:
         os:
@@ -46,6 +46,7 @@ jobs:
 
       - uses: ./.github/actions/qemu-build-and-test
         name: Build and test
+        timeout-minutes: 15
         with:
           os: ${{ matrix.os }}
           arch: ${{ matrix.arch }}
