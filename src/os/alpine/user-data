@@ -22,6 +22,12 @@ write_files:
       https://dl-cdn.alpinelinux.org/alpine/v3.21/main
       https://dl-cdn.alpinelinux.org/alpine/v3.21/community
 
+  - path: /etc/inittab
+    append: true
+    content: |
+      # Enable serial console
+      ttyS0::respawn:/sbin/getty -L ttyS0 115200 vt100
+
 # Reference: https://github.com/cloudsigma/cloud-init/blob/master/doc/examples/cloud-config-update-apt.txt
 package_update: True
 
@@ -34,6 +40,22 @@ packages:
   - curl
   - openssh
   - podman
+
+# Configure bootloader for serial console
+bootcmd:
+  - |
+    # Configure serial console for UEFI boot
+    if [ -f /etc/default/grub ]; then
+      sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT="quiet console=ttyS0,115200n8"/' /etc/default/grub
+      grub-mkconfig -o /boot/grub/grub.cfg 2>/dev/null || true
+    fi
+    # For extlinux (non-UEFI boot)
+    if [ -f /etc/update-extlinux.conf ]; then
+      sed -i 's/^default_kernel_opts=.*/default_kernel_opts="quiet rootfstype=ext4 console=ttyS0,115200n8"/' /etc/update-extlinux.conf
+      update-extlinux 2>/dev/null || true
+    fi
+    # Ensure serial getty is enabled
+    rc-update add getty.ttyS0 default 2>/dev/null || true
 
 # Reference: https://github.com/cloudsigma/cloud-init/blob/master/doc/examples/cloud-config-run-cmds.txt
 runcmd:

@@ -183,6 +183,7 @@ if [ -f "\${QEMU_EFI_FILE_NAME}" ]; then
 fi
 QEMU_CMD="\${QEMU_CMD} -nographic"
 QEMU_CMD="\${QEMU_CMD} -serial mon:stdio"
+QEMU_CMD="\${QEMU_CMD} -display none"
 
 # Add any additional arguments
 QEMU_CMD="\${QEMU_CMD} \$@"
@@ -250,6 +251,7 @@ if [ -f "${QEMU_EFI_FILE_NAME}" ]; then
 fi
 QEMU_CMD="${QEMU_CMD} -nographic"
 QEMU_CMD="${QEMU_CMD} -serial mon:stdio"
+QEMU_CMD="${QEMU_CMD} -display none"
 
 # Add any additional arguments
 QEMU_CMD="${QEMU_CMD} $@"

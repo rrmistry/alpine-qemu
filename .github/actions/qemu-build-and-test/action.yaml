@@ -69,11 +69,11 @@ runs:
           exit 1
         fi
         
-        # Verify cloud-init configuration
-        if grep -q "OpenRC" vm_boot_output.log; then
-          echo "✅ SUCCESS: OpenRC service initialization detected"
+        # Verify cloud-init configuration or boot completion
+        if grep -q "alpine-vm login:" vm_boot_output.log || grep -q "Welcome to Alpine Linux" vm_boot_output.log; then
+          echo "✅ SUCCESS: Alpine Linux boot completed successfully"
         else
-          echo "❌ FAILURE: OpenRC service initialization not detected"
+          echo "❌ FAILURE: Alpine Linux boot did not complete"
           exit 1
         fi
         
