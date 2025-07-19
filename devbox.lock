@@ -50,8 +50,8 @@
       }
     },
     "github:NixOS/nixpkgs/nixpkgs-unstable": {
-      "last_modified": "2025-07-17T10:11:59Z",
-      "resolved": "github:NixOS/nixpkgs/fa0ef8a6bb1651aa26c939aeb51b5f499e86b0ec?lastModified=1752747119&narHash=sha256-2Kp9St3Pbsmu%2BxMsobLcgzzUxPvZR7alVJWyuk2BAPc%3D"
+      "last_modified": "2025-07-18T12:29:53Z",
+      "resolved": "github:NixOS/nixpkgs/8131c0ea9df6293a247be743a387ff725e464db7?lastModified=1752841793&narHash=sha256-pGvcN%2FyiJ4e3%2FhgvTwkyZvl6c3HuLLCY%2FhjEzDuQB54%3D"
     },
     "go-task@latest": {
       "last_modified": "2025-07-13T22:45:35Z",
@@ -101,9 +101,57 @@
         }
       }
     },
+    "lazygit@latest": {
+      "last_modified": "2025-07-13T22:45:35Z",
+      "resolved": "github:NixOS/nixpkgs/a421ac6595024edcfbb1ef950a3712b89161c359#lazygit",
+      "source": "devbox-search",
+      "version": "0.53.0",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/lrzxw35vd2w3x389a8w053fgcspkcpln-lazygit-0.53.0",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/lrzxw35vd2w3x389a8w053fgcspkcpln-lazygit-0.53.0"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/8bk8af0jkpk3hjjx6d0ncfxv87mi64b2-lazygit-0.53.0",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/8bk8af0jkpk3hjjx6d0ncfxv87mi64b2-lazygit-0.53.0"
+        },
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/wv8fylnw6mzcin0pswzay144yzkaiimb-lazygit-0.53.0",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/wv8fylnw6mzcin0pswzay144yzkaiimb-lazygit-0.53.0"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/vrsrfm058q6c985hlz948rzw37b6q6v1-lazygit-0.53.0",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/vrsrfm058q6c985hlz948rzw37b6q6v1-lazygit-0.53.0"
+        }
+      }
+    },
     "qemu@latest": {
-      "last_modified": "2025-07-16T16:36:02Z",
-      "resolved": "github:NixOS/nixpkgs/fa64ec5c1ca6f17746f3defedb988b9248e97616#qemu",
+      "last_modified": "2025-07-13T22:45:35Z",
+      "resolved": "github:NixOS/nixpkgs/a421ac6595024edcfbb1ef950a3712b89161c359#qemu",
       "source": "devbox-search",
       "version": "10.0.2",
       "systems": {
@@ -161,16 +209,16 @@
               "default": true
             },
             {
-              "name": "ga",
-              "path": "/nix/store/4qxspn6x3g98dylspvvzrgaqi883bhik-qemu-10.0.2-ga"
-            },
-            {
               "name": "debug",
               "path": "/nix/store/iq5hbgy4h3cmjdvbgnkhdbmgr8qcafdb-qemu-10.0.2-debug"
             },
             {
               "name": "doc",
               "path": "/nix/store/5pzkhlh0fiw3i1ni2q5mm8s2kcgp5msc-qemu-10.0.2-doc"
+            },
+            {
+              "name": "ga",
+              "path": "/nix/store/4qxspn6x3g98dylspvvzrgaqi883bhik-qemu-10.0.2-ga"
             }
           ],
           "store_path": "/nix/store/k8yrh30af29i0zxh4snkpyw94r2psvx2-qemu-10.0.2"

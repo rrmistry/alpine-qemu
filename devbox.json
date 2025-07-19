@@ -5,7 +5,8 @@
     "go-task@latest",
     "qemu@latest",
     "tmux@latest",
-    "tmuxinator@latest"
+    "tmuxinator@latest",
+    "lazygit@latest"
   ],
   "shell": {
     "init_hook": [
@@ -13,7 +14,7 @@
     ],
     "scripts": {
       "test": [
-        "echo \"Error: no test specified\" && exit 1"
+        "act --workflows .github/workflows/build-seed-image.yaml --no-cache-server"
       ],
       "tmux": [
         "tmuxinator start alpine-qemu -p $PWD/.tmuxinator.yml"
