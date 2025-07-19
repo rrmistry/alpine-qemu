@@ -62,8 +62,12 @@ SYSTEM_ARCH=$(uname -m)
 ARCH="${ARCH:-$SYSTEM_ARCH}"
 
 if [ ! -f "${VM_NAME}.qcow2" ]; then
-  # Download Alpine cloud image (UEFI variant for all architectures)
-  ALPINE_IMAGE_URL="https://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VERSION}/releases/cloud/generic_alpine-${ALPINE_VERSION_LONG}-${ARCH}-uefi-cloudinit-${RELEASE}.qcow2"
+  # Download Alpine cloud image - use non-UEFI for x86_64, UEFI for others
+  if [ "$ARCH" = "x86_64" ]; then
+    ALPINE_IMAGE_URL="https://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VERSION}/releases/cloud/generic_alpine-${ALPINE_VERSION_LONG}-${ARCH}-cloudinit-${RELEASE}.qcow2"
+  else
+    ALPINE_IMAGE_URL="https://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VERSION}/releases/cloud/generic_alpine-${ALPINE_VERSION_LONG}-${ARCH}-uefi-cloudinit-${RELEASE}.qcow2"
+  fi
   echo "Downloading Alpine cloud image ${ALPINE_IMAGE_URL}..."
   secure_download "${ALPINE_IMAGE_URL}" "${VM_NAME}.qcow2"
   
@@ -92,7 +96,8 @@ if [ ! -f "$QEMU_EFI_FILE_NAME" ]; then
   echo "Downloading UEFI firmware for ${ARCH}..."
   case "$ARCH" in
     x86_64)
-      UEFI_URL="https://releases.linaro.org/components/kernel/uefi-linaro/latest/release/qemu64/QEMU_EFI.fd"
+      # For x86_64, we skip UEFI and use standard BIOS boot
+      UEFI_URL=""
       ;;
     aarch64)
       UEFI_URL="https://releases.linaro.org/components/kernel/uefi-linaro/latest/release/qemu64/QEMU_EFI.fd"
@@ -166,8 +171,13 @@ case "\${ARCH}" in
     QEMU_CMD="\${QEMU_CMD} -cpu cortex-a57"
     ;;
   x86_64)
-    QEMU_CMD="\${QEMU_CMD} -machine q35"
-    QEMU_CMD="\${QEMU_CMD} -cpu max"
+    QEMU_CMD="\${QEMU_CMD} -machine pc"
+    # Use simpler CPU for cross-architecture emulation
+    if [ "\${ARCH}" != "\${RUNTIME_SYSTEM_ARCH}" ]; then
+      QEMU_CMD="\${QEMU_CMD} -cpu qemu64"
+    else
+      QEMU_CMD="\${QEMU_CMD} -cpu max"
+    fi
     ;;
   i686)
     QEMU_CMD="\${QEMU_CMD} -machine q35"
@@ -181,6 +191,14 @@ esac
 # Common VM settings
 QEMU_CMD="\${QEMU_CMD} -smp \${CPUS}"
 QEMU_CMD="\${QEMU_CMD} -m \${MEMORY}"
+
+# Get system architecture at runtime
+RUNTIME_SYSTEM_ARCH=\$(uname -m)
+# Disable KVM acceleration if cross-architecture
+if [ "\${ARCH}" != "\${RUNTIME_SYSTEM_ARCH}" ]; then
+  QEMU_CMD="\${QEMU_CMD} -accel tcg"
+fi
+
 QEMU_CMD="\${QEMU_CMD} -drive file=\${VM_NAME}.qcow2,format=qcow2,if=virtio"
 QEMU_CMD="\${QEMU_CMD} -netdev user,id=net0,hostfwd=tcp::8022-:22"
 QEMU_CMD="\${QEMU_CMD} -device virtio-net-pci,netdev=net0"
@@ -241,8 +259,13 @@ case "${ARCH}" in
     QEMU_CMD="${QEMU_CMD} -cpu cortex-a57"
     ;;
   x86_64)
-    QEMU_CMD="${QEMU_CMD} -machine q35"
-    QEMU_CMD="${QEMU_CMD} -cpu max"
+    QEMU_CMD="${QEMU_CMD} -machine pc"
+    # Use simpler CPU for cross-architecture emulation
+    if [ "${ARCH}" != "${SYSTEM_ARCH}" ]; then
+      QEMU_CMD="${QEMU_CMD} -cpu qemu64"
+    else
+      QEMU_CMD="${QEMU_CMD} -cpu max"
+    fi
     ;;
   i686)
     QEMU_CMD="${QEMU_CMD} -machine q35"
@@ -256,6 +279,12 @@ esac
 # Common VM settings
 QEMU_CMD="${QEMU_CMD} -smp ${CPUS}"
 QEMU_CMD="${QEMU_CMD} -m ${MEMORY}"
+
+# Disable KVM acceleration if cross-architecture
+if [ "${ARCH}" != "${SYSTEM_ARCH}" ]; then
+  QEMU_CMD="${QEMU_CMD} -accel tcg"
+fi
+
 QEMU_CMD="${QEMU_CMD} -drive file=${VM_NAME}.qcow2,format=qcow2,if=virtio"
 QEMU_CMD="${QEMU_CMD} -drive file=${SEED_FILE_NAME},format=raw,if=virtio,readonly=on"
 QEMU_CMD="${QEMU_CMD} -netdev user,id=net0,hostfwd=tcp::8022-:22"

@@ -59,8 +59,43 @@ runs:
         # Test the alpine-qemu-setup.sh script
         echo "Testing Alpine QEMU VM boot process..."
         
-        # Run the script with timeout to prevent hanging, capture output
-        ARCH=${{ inputs.arch }} timeout 300s ./alpine-qemu-setup.sh 2>&1 | tee vm_boot_output.log || echo "VM boot test completed (timeout expected)"
+        # Run the script with timeout and exit early on successful boot
+        (
+          # Start QEMU in background and capture output
+          ARCH=${{ inputs.arch }} timeout 300s ./alpine-qemu-setup.sh > vm_boot_output.log 2>&1 &
+          QEMU_PID=$!
+          
+          # Monitor output for successful boot or timeout
+          SECONDS=0
+          while [ $SECONDS -lt 300 ]; do
+            if ! kill -0 $QEMU_PID 2>/dev/null; then
+              echo "QEMU process exited"
+              break
+            fi
+            
+            if grep -q "Welcome to Alpine Linux" vm_boot_output.log || grep -q "alpine-vm login:" vm_boot_output.log; then
+              echo "Alpine Linux boot detected, stopping VM..."
+              kill -TERM $QEMU_PID 2>/dev/null || true
+              sleep 2
+              kill -KILL $QEMU_PID 2>/dev/null || true
+              break
+            fi
+            
+            # Also check for cloud-init completion and shutdown
+            if grep -q "Cloud-init.*finished.*Shutting down" vm_boot_output.log || grep -q "Power down" vm_boot_output.log; then
+              echo "Cloud-init completed and VM shutting down..."
+              break
+            fi
+            
+            sleep 1
+          done
+          
+          # Wait for process to complete
+          wait $QEMU_PID 2>/dev/null || true
+          
+          # Display the output
+          cat vm_boot_output.log
+        ) || echo "VM boot test completed"
         
         # Verify VM files were created
         echo "Checking created VM files..."
