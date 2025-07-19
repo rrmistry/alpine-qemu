@@ -60,7 +60,7 @@ runs:
         echo "Testing Alpine QEMU VM boot process..."
         
         # Run the script with timeout to prevent hanging, capture output
-        timeout 120s ARCH=${{ inputs.arch }} ./alpine-qemu-setup.sh 2>&1 | tee vm_boot_output.log || echo "VM boot test completed (timeout expected)"
+        ARCH=${{ inputs.arch }} timeout 300s ./alpine-qemu-setup.sh 2>&1 | tee vm_boot_output.log || echo "VM boot test completed (timeout expected)"
         
         # Verify VM files were created
         echo "Checking created VM files..."
