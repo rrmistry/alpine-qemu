@@ -10,6 +10,14 @@ inputs:
     options:
       - alpine
       # - debian # TODO
+  arch:
+    description: The architecture to build and test
+    required: true
+    default: x86_64
+    type: choice
+    options:
+      - x86_64
+      - aarch64
 
 runs:
   using: "composite"
@@ -52,7 +60,7 @@ runs:
         echo "Testing Alpine QEMU VM boot process..."
         
         # Run the script with timeout to prevent hanging, capture output
-        timeout 120s ./alpine-qemu-setup.sh 2>&1 | tee vm_boot_output.log || echo "VM boot test completed (timeout expected)"
+        timeout 120s ARCH=${{ inputs.arch }} ./alpine-qemu-setup.sh 2>&1 | tee vm_boot_output.log || echo "VM boot test completed (timeout expected)"
         
         # Verify VM files were created
         echo "Checking created VM files..."
@@ -92,7 +100,7 @@ runs:
       uses: actions/upload-artifact@v4
       if: env.ACT != 'true'
       with:
-        name: ${{ inputs.os }}-build-artifacts
+        name: ${{ inputs.os }}-${{ inputs.arch }}-build-artifacts
         path: |
           src/os/${{ inputs.os }}/${{ inputs.os }}-seed.img
           src/os/${{ inputs.os }}/${{ inputs.os }}-qemu-setup.sh
