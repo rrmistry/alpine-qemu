@@ -32,6 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
+      max-parallel: 1
       matrix:
         os:
         - alpine
@@ -46,7 +47,7 @@ jobs:
 
       - uses: ./.github/actions/qemu-build-and-test
         name: Build and test
-        timeout-minutes: 15
+        timeout-minutes: 30
         with:
           os: ${{ matrix.os }}
           arch: ${{ matrix.arch }}

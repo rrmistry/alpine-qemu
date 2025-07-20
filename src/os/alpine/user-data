@@ -36,26 +36,28 @@ package_upgrade: True
 
 # Reference: https://github.com/cloudsigma/cloud-init/blob/master/doc/examples/cloud-config-install-packages.txt
 packages:
+  - git
+  - python3
   - bash
   - curl
   - openssh
   - podman
 
-# Configure bootloader for serial console
-bootcmd:
-  - |
-    # Configure serial console for UEFI boot
-    if [ -f /etc/default/grub ]; then
-      sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT="quiet console=ttyS0,115200n8"/' /etc/default/grub
-      grub-mkconfig -o /boot/grub/grub.cfg 2>/dev/null || true
-    fi
-    # For extlinux (non-UEFI boot)
-    if [ -f /etc/update-extlinux.conf ]; then
-      sed -i 's/^default_kernel_opts=.*/default_kernel_opts="quiet rootfstype=ext4 console=ttyS0,115200n8"/' /etc/update-extlinux.conf
-      update-extlinux 2>/dev/null || true
-    fi
-    # Ensure serial getty is enabled
-    rc-update add getty.ttyS0 default 2>/dev/null || true
+# # Configure bootloader for serial console
+# bootcmd:
+#   - |
+#     # Configure serial console for UEFI boot
+#     if [ -f /etc/default/grub ]; then
+#       sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT="quiet console=ttyS0,115200n8"/' /etc/default/grub
+#       grub-mkconfig -o /boot/grub/grub.cfg 2>/dev/null || true
+#     fi
+#     # For extlinux (non-UEFI boot)
+#     if [ -f /etc/update-extlinux.conf ]; then
+#       sed -i 's/^default_kernel_opts=.*/default_kernel_opts="quiet rootfstype=ext4 console=ttyS0,115200n8"/' /etc/update-extlinux.conf
+#       update-extlinux 2>/dev/null || true
+#     fi
+#     # Ensure serial getty is enabled
+#     rc-update add getty.ttyS0 default 2>/dev/null || true
 
 # Reference: https://github.com/cloudsigma/cloud-init/blob/master/doc/examples/cloud-config-run-cmds.txt
 runcmd:
@@ -68,8 +70,8 @@ runcmd:
   - rc-service sshd restart
   - rc-service cgroups start
 
-  # Disable cloud-init on next boot
-  - touch /etc/cloud/cloud-init.disabled
+  # # Disable cloud-init on next boot
+  # - touch /etc/cloud/cloud-init.disabled
 
   # To confirm that cloud-init finished successfully
   - cat /var/lib/cloud/instance/boot-finished

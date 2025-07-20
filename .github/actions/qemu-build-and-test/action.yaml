@@ -60,7 +60,7 @@ runs:
         echo "Testing ${{ inputs.os }} QEMU VM boot process..."
         
         # Run the script - VM will auto-shutdown via cloud-init
-        ARCH=${{ inputs.arch }} ./${{ inputs.os }}-qemu-setup.sh || echo "VM boot test completed"
+        ARCH=${{ inputs.arch }} . ./${{ inputs.os }}-qemu-setup.sh || echo "VM setup completed"
         
         # Verify VM files were created
         echo "Checking created VM files..."

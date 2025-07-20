@@ -4,6 +4,7 @@
     "act@latest",
     "go-task@latest",
     "qemu@latest",
+    "cdrtools@latest",
     "tmux@latest",
     "tmuxinator@latest",
     "lazygit@latest"
@@ -14,7 +15,7 @@
     ],
     "scripts": {
       "test": [
-        "act --workflows .github/workflows/build-seed-image.yaml --no-cache-server"
+        "act --workflows .github/workflows/build-seed-image.yaml --no-cache-server --container-architecture linux/amd64"
       ],
       "tmux": [
         "tmuxinator start alpine-qemu -p $PWD/.tmuxinator.yml"

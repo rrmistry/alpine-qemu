@@ -1,52 +1,7 @@
 #!/bin/bash
-set -e
 
-# Helper function for secure downloading with corporate certificate fallback
-secure_download() {
-    local url="$1"
-    local output="$2"
-    local success=false
-    
-    if command -v curl >/dev/null 2>&1; then
-        # Try curl with standard SSL verification first
-        echo "Attempting secure download with curl..."
-        if curl -fsSL "$url" --output "$output" 2>/dev/null; then
-            success=true
-        else
-            echo "Standard SSL verification failed, trying with --ssl-no-revoke for corporate networks..."
-            if curl -fsSL --ssl-no-revoke "$url" --output "$output" 2>/dev/null; then
-                success=true
-                echo "Downloaded successfully with --ssl-no-revoke (corporate network detected)"
-            fi
-        fi
-    elif command -v wget >/dev/null 2>&1; then
-        # Try wget with standard SSL verification first
-        echo "Attempting secure download with wget..."
-        if wget --quiet "$url" -O "$output" 2>/dev/null; then
-            success=true
-        else
-            echo "Standard SSL verification failed, trying with --no-check-certificate for corporate networks..."
-            if wget --quiet --no-check-certificate "$url" -O "$output" 2>/dev/null; then
-                success=true
-                echo "Downloaded successfully with --no-check-certificate (corporate network detected)"
-            fi
-        fi
-    else
-        echo "Error: curl or wget is required but not installed."
-        exit 1
-    fi
-    
-    if [ "$success" = false ]; then
-        echo "Error: Failed to download $url"
-        echo "This may be due to:"
-        echo "  - Network connectivity issues"
-        echo "  - SSL certificate problems"
-        echo "  - Corporate firewall restrictions"
-        echo ""
-        echo "Try manually downloading the file or contact your IT administrator."
-        exit 1
-    fi
-}
+# Stop script on any error
+set -e
 
 # Variables
 ALPINE_VERSION="${ALPINE_VERSION:-3.21}"
@@ -58,19 +13,45 @@ VM_NAME="${VM_NAME:-alpine-vm}"
 DISK_SIZE="${DISK_SIZE:-20G}"
 MEMORY="${MEMORY:-2048}"
 CPUS="${CPUS:-2}"
+SSH_PORT="${SSH_PORT:-8022}"
 SYSTEM_ARCH=$(uname -m)
 ARCH="${ARCH:-$SYSTEM_ARCH}"
 
 # Always recreate VM image for clean state
 if [ -f "${VM_NAME}.qcow2" ]; then
-  echo "Removing existing VM image for clean setup..."
-  rm -f "${VM_NAME}.qcow2"
+
+  # Confirm with the user before removing existing VM image
+  echo "Existing VM image ${VM_NAME}.qcow2 found."
+  read -p "Do you want to remove it for a clean setup? (y/N): " confirm
+  if [[ "$confirm" =~ ^[Yy]$ ]]; then
+    echo "Removing existing VM image..."
+    rm -f "${VM_NAME}.qcow2"
+  else
+    echo "Skipping removal of existing VM image."
+    echo "Exiting setup to avoid conflicts."
+    exit 0
+  fi
 fi
 
-# Download Alpine cloud image (UEFI variant for all architectures)
-ALPINE_IMAGE_URL="https://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VERSION}/releases/cloud/generic_alpine-${ALPINE_VERSION_LONG}-${ARCH}-uefi-cloudinit-${RELEASE}.qcow2"
-echo "Downloading Alpine cloud image ${ALPINE_IMAGE_URL}..."
-secure_download "${ALPINE_IMAGE_URL}" "${VM_NAME}.qcow2"
+# Download Alpine cloud image
+case "${ARCH}" in
+  x86_64)
+    # Use BIOS image for x86_64 (simpler, works with the command)
+    ALPINE_IMAGE_URL="https://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VERSION}/releases/cloud/generic_alpine-${ALPINE_VERSION_LONG}-${ARCH}-bios-cloudinit-${RELEASE}.qcow2"
+    ;;
+  aarch64)
+    # Use UEFI image for aarch64 (required for ARM64)
+    ALPINE_IMAGE_URL="https://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VERSION}/releases/cloud/generic_alpine-${ALPINE_VERSION_LONG}-${ARCH}-uefi-cloudinit-${RELEASE}.qcow2"
+    ;;
+  *)
+    echo "Unsupported architecture: $ARCH" >&2
+    exit 1
+    ;;
+esac
+
+echo ""
+echo "Downloading Alpine cloud image..."
+wget "${ALPINE_IMAGE_URL}" -v -O "${VM_NAME}.qcow2"
 
 # Resize the disk image
 if command -v qemu-img >/dev/null 2>&1; then
@@ -82,35 +63,24 @@ fi
 
 # Download pre-built seed image from GitHub releases
 if [ ! -f "$SEED_FILE_NAME" ]; then
+  echo ""
   echo "Downloading pre-built seed image from GitHub releases..."
   SEED_IMAGE_URL="https://github.com/rrmistry/alpine-qemu/releases/latest/download/${SEED_FILE_NAME}"
-  secure_download "${SEED_IMAGE_URL}" "${SEED_FILE_NAME}"
+  wget "${SEED_IMAGE_URL}" -v -O "${SEED_FILE_NAME}"
 else
   echo "${SEED_FILE_NAME} already exists. Skipping download."
 fi
 
-# Download UEFI firmware for all architectures
-if [ ! -f "$QEMU_EFI_FILE_NAME" ]; then
-  echo "Downloading UEFI firmware for ${ARCH}..."
-  case "$ARCH" in
-    x86_64)
-      # For x86_64, use OVMF UEFI firmware
-      UEFI_URL="https://releases.linaro.org/components/kernel/uefi-linaro/latest/release/qemu64/QEMU_EFI.fd"
-      ;;
-    aarch64)
-      UEFI_URL="https://releases.linaro.org/components/kernel/uefi-linaro/latest/release/qemu64/QEMU_EFI.fd"
-      ;;
-    *)
-      echo "Warning: No UEFI firmware URL defined for ${ARCH}, continuing without firmware"
-      UEFI_URL=""
-      ;;
-  esac
-  
-  if [ -n "$UEFI_URL" ]; then
-    secure_download "$UEFI_URL" "$QEMU_EFI_FILE_NAME"
+# Download UEFI firmware only for aarch64
+if [ "${ARCH}" = "aarch64" ]; then
+  if [ ! -f "$QEMU_EFI_FILE_NAME" ]; then
+    echo ""
+    echo "Downloading UEFI firmware for ${ARCH}..."
+    UEFI_URL="https://releases.linaro.org/components/kernel/uefi-linaro/latest/release/qemu64/QEMU_EFI.fd"
+    wget "$UEFI_URL" -v -O "$QEMU_EFI_FILE_NAME"
+  else
+    echo "${QEMU_EFI_FILE_NAME} already exists. Skipping download."
   fi
-else
-  echo "${QEMU_EFI_FILE_NAME} already exists. Skipping download."
 fi
 
 # Determine the host CPU architecture and select the appropriate QEMU binary.
@@ -133,104 +103,25 @@ case "$ARCH" in
     ;;
 esac
 
-# Create runtime script for subsequent runs (without cloud-init)
-ALPINE_QEMU_RUNTIME_SCRIPT="${VM_NAME}.sh"
-echo "Creating runtime script ${ALPINE_QEMU_RUNTIME_SCRIPT}"
-
-# Build UEFI-compatible QEMU command
-cat > ${ALPINE_QEMU_RUNTIME_SCRIPT} << EOF
-#!/bin/bash
-set -e
-
-# Runtime script for Alpine Linux VM (UEFI)
-# Generated by alpine-qemu-setup.sh
-
-VM_NAME="${VM_NAME}"
-ARCH="${ARCH}"
-QEMU_BIN="${QEMU_BIN}"
-QEMU_EFI_FILE_NAME="${QEMU_EFI_FILE_NAME}"
-
-CPUS=\${CPUS:-${CPUS}}
-MEMORY=\${MEMORY:-${MEMORY}}
-
-echo "🚀 Starting Alpine Linux VM (\${ARCH}, UEFI)"
-echo "   Memory: \${MEMORY}MB, CPUs: \${CPUS}"
-echo "   SSH: ssh -p \${SSH_PORT} alpine@localhost (password: alpine)"
-echo "   Stop: Ctrl+A, X or 'sudo poweroff' inside VM"
-echo ""
-
-# Build QEMU command with UEFI support
-QEMU_CMD="\${QEMU_BIN}"
-
-# Architecture-specific machine type and CPU settings
-case "\${ARCH}" in
-  aarch64)
-    QEMU_CMD="\${QEMU_CMD} -machine virt"
-    QEMU_CMD="\${QEMU_CMD} -cpu cortex-a57"
-    ;;
-  x86_64)
-    QEMU_CMD="\${QEMU_CMD} -machine q35"
-    QEMU_CMD="\${QEMU_CMD} -cpu max"
-    QEMU_CMD="\${QEMU_CMD} -global isa-debugcon.iobase=0x402"
-    ;;
-  i686)
-    QEMU_CMD="\${QEMU_CMD} -machine q35"
-    QEMU_CMD="\${QEMU_CMD} -cpu qemu32"
-    ;;
-  *)
-    QEMU_CMD="\${QEMU_CMD} -machine virt"
-    ;;
-esac
-
-# Common VM settings
-QEMU_CMD="\${QEMU_CMD} -smp \${CPUS}"
-QEMU_CMD="\${QEMU_CMD} -m \${MEMORY}"
-QEMU_CMD="\${QEMU_CMD} -drive file=\${VM_NAME}.qcow2,format=qcow2,if=virtio"
-QEMU_CMD="\${QEMU_CMD} -netdev user,id=net0,hostfwd=tcp::\${SSH_PORT}-:22"
-QEMU_CMD="\${QEMU_CMD} -device virtio-net-pci,netdev=net0"
-
-# UEFI firmware and console - architecture specific console setup
-if [ -f "\${QEMU_EFI_FILE_NAME}" ]; then
-  QEMU_CMD="\${QEMU_CMD} -bios \${QEMU_EFI_FILE_NAME}"
-fi
-QEMU_CMD="\${QEMU_CMD} -nographic"
-case "\${ARCH}" in
-  x86_64)
-    # For x86_64 UEFI, use stdio for serial console and disable monitor
-    QEMU_CMD="\${QEMU_CMD} -serial stdio"
-    QEMU_CMD="\${QEMU_CMD} -monitor none"
-    ;;
-  *)
-    # For other architectures, use the monitor serial
-    QEMU_CMD="\${QEMU_CMD} -serial mon:stdio"
-    ;;
-esac
-QEMU_CMD="\${QEMU_CMD} -display none"
-
-# Add any additional arguments
-QEMU_CMD="\${QEMU_CMD} \$@"
-
-echo "Executing: \${QEMU_CMD}"
-echo ""
-
-# Execute the command
-exec \${QEMU_CMD}
-EOF
-
-chmod +x ${ALPINE_QEMU_RUNTIME_SCRIPT}
-
 # Run the VM with cloud-init configuration for first time setup
 echo ""
 echo "🎉 Alpine Linux VM setup complete!"
 echo ""
 echo "📋 Next steps:"
-echo "   1. Start VM: ./${ALPINE_QEMU_RUNTIME_SCRIPT}"
-echo "   2. SSH access: ssh -p ${SSH_PORT} alpine@localhost (password: alpine)"
-echo "   3. Stop VM: Ctrl+A, X or 'sudo poweroff' inside VM"
+echo "   1. First boot with cloud-init will start now"
+echo "   2. VM will auto-shutdown after cloud-init completes"
+echo "   3. Runtime script will be created for subsequent runs"
 echo ""
 echo "🔧 Configuration:"
 echo "   - Architecture: ${ARCH}"
-echo "   - Firmware: UEFI"
+case "${ARCH}" in
+  x86_64)
+    echo "   - Firmware: BIOS"
+    ;;
+  aarch64)
+    echo "   - Firmware: UEFI"
+    ;;
+esac
 echo "   - Memory: ${MEMORY}MB"
 echo "   - CPUs: ${CPUS}"
 echo "   - Disk: ${DISK_SIZE}"
@@ -238,67 +129,88 @@ echo ""
 echo "📁 Files created:"
 echo "   - ${VM_NAME}.qcow2 (VM disk image)"
 echo "   - ${SEED_FILE_NAME} (cloud-init seed)"
-if [ -f "${QEMU_EFI_FILE_NAME}" ]; then
+if [ "${ARCH}" = "aarch64" ] && [ -f "${QEMU_EFI_FILE_NAME}" ]; then
 echo "   - ${QEMU_EFI_FILE_NAME} (UEFI firmware)"
 fi
-echo "   - ${ALPINE_QEMU_RUNTIME_SCRIPT} (runtime script)"
 echo ""
-echo "💡 To start with cloud-init (first boot only):"
+echo "💡 Starting first boot with cloud-init..."
 
-# Build and execute UEFI-compatible QEMU command for initial setup
+# Build and execute QEMU command for initial setup
 QEMU_CMD="${QEMU_BIN}"
 
-# Architecture-specific machine type and CPU settings
+# Add the main OS disk image
+QEMU_CMD="${QEMU_CMD} -drive file=${VM_NAME}.qcow2,index=0,format=qcow2,media=disk"
+QEMU_CMD="${QEMU_CMD} -net nic -net user"
+
 case "${ARCH}" in
+  x86_64)
+    ;;
   aarch64)
+    # Keep existing aarch64 configuration unchanged
     QEMU_CMD="${QEMU_CMD} -machine virt"
     QEMU_CMD="${QEMU_CMD} -cpu cortex-a57"
-    ;;
-  x86_64)
-    QEMU_CMD="${QEMU_CMD} -machine q35"
-    QEMU_CMD="${QEMU_CMD} -cpu max"
-    QEMU_CMD="${QEMU_CMD} -global isa-debugcon.iobase=0x402"
-    ;;
-  i686)
-    QEMU_CMD="${QEMU_CMD} -machine q35"
-    QEMU_CMD="${QEMU_CMD} -cpu qemu32"
-    ;;
-  *)
-    QEMU_CMD="${QEMU_CMD} -machine virt"
-    ;;
-esac
-
-# Common VM settings
-QEMU_CMD="${QEMU_CMD} -smp ${CPUS}"
-QEMU_CMD="${QEMU_CMD} -m ${MEMORY}"
-QEMU_CMD="${QEMU_CMD} -drive file=${VM_NAME}.qcow2,format=qcow2,if=virtio"
-QEMU_CMD="${QEMU_CMD} -drive file=${SEED_FILE_NAME},format=raw,if=virtio,readonly=on"
-QEMU_CMD="${QEMU_CMD} -netdev user,id=net0"
-QEMU_CMD="${QEMU_CMD} -device virtio-net-pci,netdev=net0"
-
-# UEFI firmware and console - architecture specific console setup
-if [ -f "${QEMU_EFI_FILE_NAME}" ]; then
-  QEMU_CMD="${QEMU_CMD} -bios ${QEMU_EFI_FILE_NAME}"
-fi
-QEMU_CMD="${QEMU_CMD} -nographic"
-case "${ARCH}" in
-  x86_64)
-    # For x86_64 UEFI, use stdio for serial console and disable monitor
-    QEMU_CMD="${QEMU_CMD} -serial stdio"
-    QEMU_CMD="${QEMU_CMD} -monitor none"
-    ;;
-  *)
-    # For other architectures, use the monitor serial
+    if [ -f "${QEMU_EFI_FILE_NAME}" ]; then
+      QEMU_CMD="${QEMU_CMD} -bios ${QEMU_EFI_FILE_NAME}"
+    fi
     QEMU_CMD="${QEMU_CMD} -serial mon:stdio"
+    QEMU_CMD="${QEMU_CMD} -display none"
+    ;;
+  *)
+    echo "Unsupported architecture: $ARCH" >&2
+    exit 1
     ;;
 esac
-QEMU_CMD="${QEMU_CMD} -display none"
+
+# Disable graphical output for all architectures
+QEMU_CMD="${QEMU_CMD} -nographic"
 
 # Add any additional arguments
-QEMU_CMD="${QEMU_CMD} $@"
+QEMU_SETUP_CMD="${QEMU_CMD} -m ${MEMORY} -smp ${CPUS} -drive file=${SEED_FILE_NAME},index=1,media=cdrom $@"
 
-echo "${QEMU_CMD}"
-echo ""
 echo "🚀 Starting VM with cloud-init for initial setup..."
 
-exec ${QEMU_CMD}
+# Execute cloud-init setup (with cloud-init drive)
+# Use eval to ensure proper command execution with full TTY/signal handling
+echo "Running QEMU command: ${QEMU_SETUP_CMD}"
+eval $QEMU_SETUP_CMD
+
+# Check if cloud-init completed successfully (VM should have shut down)
+if [ $? -eq 0 ]; then
+  echo ""
+  echo "✅ QEMU first boot completed successfully!"
+  echo ""
+  echo "Creating runtime script for subsequent runs..."
+  
+  # Create runtime script for subsequent runs (without cloud-init)
+  ALPINE_QEMU_RUNTIME_SCRIPT="${VM_NAME}.sh"
+  echo "Creating runtime script ${ALPINE_QEMU_RUNTIME_SCRIPT}"
+  
+  cat > ${ALPINE_QEMU_RUNTIME_SCRIPT} << EOF
+#!/bin/sh
+set -e
+
+# Environment variables
+CPUS=\${CPUS:-${CPUS}}
+MEMORY=\${MEMORY:-${MEMORY}}
+SSH_PORT=\${SSH_PORT:-${SSH_PORT}}
+
+# Run QEMU
+${QEMU_CMD} -m \${MEMORY} -smp \${CPUS} -net user,hostfwd=tcp::\${SSH_PORT}-:22 \$@
+EOF
+
+  chmod +x ${ALPINE_QEMU_RUNTIME_SCRIPT}
+  
+  echo ""
+  echo "🎉 Runtime script created: ${ALPINE_QEMU_RUNTIME_SCRIPT}"
+  echo ""
+  echo "📋 Next steps:"
+  echo "   1. Start VM: ./${ALPINE_QEMU_RUNTIME_SCRIPT}"
+  echo "   2. SSH access: ssh -p ${SSH_PORT} alpine@localhost (password: alpine)"
+  echo "   3. Stop VM: Ctrl+A, X or 'sudo poweroff' inside VM"
+  echo ""
+  echo "✅ Setup complete! VM is ready for use."
+else
+  echo ""
+  echo "❌ Cloud-init setup failed or was interrupted"
+  echo "   You may need to run the setup script again"
+fi

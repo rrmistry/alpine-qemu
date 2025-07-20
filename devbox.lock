@@ -49,6 +49,54 @@
         }
       }
     },
+    "cdrtools@latest": {
+      "last_modified": "2025-07-13T22:45:35Z",
+      "resolved": "github:NixOS/nixpkgs/a421ac6595024edcfbb1ef950a3712b89161c359#cdrtools",
+      "source": "devbox-search",
+      "version": "3.02a09",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/jrvx0rwx800hwffl998kj2n50xq42vd1-cdrtools-3.02a09",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/jrvx0rwx800hwffl998kj2n50xq42vd1-cdrtools-3.02a09"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/i4flqjlyy7kbk3djnx6wvs1ra2rx7iv0-cdrtools-3.02a09",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/i4flqjlyy7kbk3djnx6wvs1ra2rx7iv0-cdrtools-3.02a09"
+        },
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/5yz5zm3033d5v55ap9sg5gprp716j5x1-cdrtools-3.02a09",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/5yz5zm3033d5v55ap9sg5gprp716j5x1-cdrtools-3.02a09"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/9xlpwlhbbpq2pfhqp6x47qc75fmmx0ig-cdrtools-3.02a09",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/9xlpwlhbbpq2pfhqp6x47qc75fmmx0ig-cdrtools-3.02a09"
+        }
+      }
+    },
     "github:NixOS/nixpkgs/nixpkgs-unstable": {
       "last_modified": "2025-07-18T12:29:53Z",
       "resolved": "github:NixOS/nixpkgs/8131c0ea9df6293a247be743a387ff725e464db7?lastModified=1752841793&narHash=sha256-pGvcN%2FyiJ4e3%2FhgvTwkyZvl6c3HuLLCY%2FhjEzDuQB54%3D"
