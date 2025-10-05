@@ -1,3 +1,4 @@
 # Clean local iso image from Git repo
 *.img
 *.qcow2
+src/os/.DS_Store

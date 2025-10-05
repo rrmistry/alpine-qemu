@@ -1,6 +1,9 @@
-# .tmuxinator.yml - Tmuxinator configuration for alpine-qemu
-name: alpine-qemu
+# .tmuxinator.yml - Tmuxinator configuration for pricing-model-experiments
+name: <%= File.basename(ENV["PWD"]) %>
 root: <%= ENV["PWD"] || "." %>
+
+# Optional environment variables
+dotenv: true
 
 # Optional tmux socket
 # socket_name: foo
@@ -24,13 +27,13 @@ root: <%= ENV["PWD"] || "." %>
 # pre_window: rbenv shell 2.0.0-p247
 
 # Pass command line options to tmux. Useful for specifying a different tmux.conf.
-# tmux_options: -f ~/.tmux.mac.conf
+tmux_options: -f <%= ENV["PWD"] %>/.tmux.conf
 
 # Change the command to call tmux.  This can be used by derivatives/wrappers like byobu.
 # tmux_command: byobu
 
 # Specifies (by name or index) which window will be selected on project startup. If not set, the first window is used.
-startup_window: claude
+startup_window: agent
 
 # Specifies (by index) which pane of the specified window will be selected on project startup. If not set, the first pane is used.
 # startup_pane: 1
@@ -39,9 +42,11 @@ startup_window: claude
 # attach: false
 
 windows:
-  - claude:
+  - agent:
       panes:
-        - claude --continue
+        - |
+          . $VENV_DIR/bin/activate
+          echo "You can run: claude --ide --continue"
   - lazygit:
       panes:
         - lazygit
