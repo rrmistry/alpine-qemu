@@ -20,17 +20,16 @@ echo "   VNC: vnc://localhost:${VNC_PORT}"
 echo "   RDP: rdp://localhost:${RDP_PORT}"
 echo ""
 
-# Run QEMU - based on UTM Windows 7 recommendations
+# Run QEMU
 qemu-system-x86_64 \
-  -machine pc \
+  -machine q35 \
   -cpu qemu64 \
   -m ${MEMORY} \
   -smp ${CPUS} \
-  -drive file=${VM_NAME}.qcow2,if=ide,format=qcow2 \
+  -drive file=${VM_NAME}.qcow2,if=virtio,format=qcow2 \
   -netdev user,id=net0,hostfwd=tcp::${RDP_PORT}-:3389 \
-  -device rtl8139,netdev=net0 \
-  -vga std \
+  -device e1000,netdev=net0 \
   -usb -device usb-tablet \
-  -rtc base=localtime \
-  -boot c \
+  -device AC97 \
+  -boot order=c \
   "$@"

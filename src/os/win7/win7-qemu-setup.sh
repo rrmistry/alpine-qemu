@@ -184,19 +184,18 @@ echo ""
 
 # Build QEMU command
 QEMU_CMD="${QEMU_BIN}"
-QEMU_CMD="${QEMU_CMD} -machine q35"
+QEMU_CMD="${QEMU_CMD} -machine pc"
 QEMU_CMD="${QEMU_CMD} -cpu qemu64"
 QEMU_CMD="${QEMU_CMD} -m ${MEMORY}"
 QEMU_CMD="${QEMU_CMD} -smp ${CPUS}"
 QEMU_CMD="${QEMU_CMD} -drive file=${VM_NAME}.qcow2,if=ide,format=qcow2"
 
-# Add network with port forwarding
-QEMU_CMD="${QEMU_CMD} -netdev user,id=net0,hostfwd=tcp::${RDP_PORT}-:3389"
-QEMU_CMD="${QEMU_CMD} -device e1000,netdev=net0"
+# Add network with port forwarding and DNS
+QEMU_CMD="${QEMU_CMD} -netdev user,id=net0,hostfwd=tcp::${RDP_PORT}-:3389,dns=8.8.8.8"
+QEMU_CMD="${QEMU_CMD} -device rtl8139,netdev=net0"
 
-# Add display - use default windowed display (works on macOS, Linux, etc.)
-# This will open a QEMU window directly
-# To use VNC instead, set environment variable: DISPLAY_MODE=vnc
+# Add VGA display
+QEMU_CMD="${QEMU_CMD} -vga std"
 
 # Enable KVM acceleration if available (won't work on ARM64 for x86_64)
 # This is kept for potential x86_64 host compatibility
@@ -210,8 +209,13 @@ fi
 # Add USB support
 QEMU_CMD="${QEMU_CMD} -usb -device usb-tablet"
 
-# Add sound (optional, can be disabled)
-QEMU_CMD="${QEMU_CMD} -device AC97"
+# Add audio support (Intel HDA with duplex for microphone and speakers)
+QEMU_CMD="${QEMU_CMD} -audiodev coreaudio,id=audio0"
+QEMU_CMD="${QEMU_CMD} -device intel-hda"
+QEMU_CMD="${QEMU_CMD} -device hda-duplex,audiodev=audio0"
+
+# Add RTC with local time
+QEMU_CMD="${QEMU_CMD} -rtc base=localtime"
 
 # If installation mode, add ISO as CD-ROM and set boot order
 if [ "$INSTALL_MODE" = true ]; then
